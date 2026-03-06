@@ -8,7 +8,7 @@ Add the following to your `pom.xml`:
 
 ```xml
 <dependency>
-    <groupId>com.memorose</groupId>
+    <groupId>dev.memorose.sdk</groupId>
     <artifactId>memorose-client</artifactId>
     <version>0.1.0</version>
 </dependency>
