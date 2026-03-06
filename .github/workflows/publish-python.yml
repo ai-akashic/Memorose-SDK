@@ -1,0 +1,42 @@
+name: Publish Python SDK to PyPI
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    
+    # 【非常重要】这段权限声明是 OIDC 免密认证的核心！
+    # 它允许 GitHub 向 PyPI 证明 "我是合法的 workflow"
+    permissions:
+      id-token: write
+      contents: read
+
+    defaults:
+      run:
+        working-directory: ./python
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Install build dependencies
+        run: python -m pip install --upgrade pip build
+
+      - name: Build package
+        run: python -m build
+
+      # 使用官方的发布 Action，它会自动使用 OIDC 认证，不需要任何 Token！
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: ./python/dist/

@@ -1,0 +1,41 @@
+name: Publish Go SDK
+
+on:
+  push:
+    tags:
+      # 在 Monorepo 中，Go 子目录的模块需要使用 子目录/v* 作为 tag
+      - 'go/v*'
+  workflow_dispatch:
+
+jobs:
+  test-and-publish:
+    runs-on: ubuntu-latest
+    
+    defaults:
+      run:
+        working-directory: ./go
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.20'
+          cache-dependency-path: ./go/go.sum
+
+      - name: Verify dependencies
+        run: go mod verify
+
+      - name: Run Tests
+        run: go test -v ./...
+
+      # 触发 pkg.go.dev 缓存更新，让全世界可以立刻搜到这个版本
+      # 使用 ${{ github.ref_name }} 获取当前的 tag (例如 go/v0.1.0)
+      - name: Update Go Proxy (pkg.go.dev)
+        run: |
+          TAG_VERSION=${{ github.ref_name }}
+          VERSION=${TAG_VERSION#go/}
+          echo "Triggering pkg.go.dev proxy for github.com/${{ github.repository }}/go@${VERSION}"
+          GOPROXY=https://proxy.golang.org GO111MODULE=on go list -m github.com/${{ github.repository }}/go@${VERSION}
