@@ -62,7 +62,7 @@ export class MemoroseClient {
                 throw new MemoroseAPIError(response.status, errorMsg, text);
             }
             
-            return text ? JSON.parse(text) : {};
+            return text ? JSON.parse(text) : ({} as T);
         } catch (error) {
             if (error instanceof Error && error.name === 'AbortError') {
                 throw new Error(`Request timeout after ${this.timeoutMs}ms`);
