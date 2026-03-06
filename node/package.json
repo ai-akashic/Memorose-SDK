@@ -1,0 +1,43 @@
+{
+  "name": "memorose-client",
+  "version": "0.1.0",
+  "description": "Node.js SDK for the Memorose Hybrid AI Memory Storage Engine",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "prepublishOnly": "npm run build",
+    "test": "jest"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/memorose/memorose-sdk.git"
+  },
+  "keywords": [
+    "memorose",
+    "cortexdb",
+    "ai",
+    "memory",
+    "storage",
+    "llm",
+    "rag",
+    "vector",
+    "graph"
+  ],
+  "author": "Memorose Team <team@memorose.com>",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/memorose/memorose-sdk/issues"
+  },
+  "homepage": "https://github.com/memorose/memorose-sdk#readme",
+  "dependencies": {},
+  "devDependencies": {
+    "@types/jest": "^29.5.0",
+    "jest": "^29.5.0",
+    "ts-jest": "^29.1.0",
+    "typescript": "^5.0.0"
+  }
+}
