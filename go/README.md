@@ -5,7 +5,7 @@ Go client for the Memorose Hybrid AI Memory Storage Engine.
 ## Installation
 
 ```bash
-go get github.com/memorose/memorose-go
+go get github.com/memorose/memorose-sdk/go
 ```
 
 ## Usage
@@ -18,7 +18,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/memorose/memorose-go"
+	"github.com/memorose/memorose-sdk/go"
 )
 
 func main() {
