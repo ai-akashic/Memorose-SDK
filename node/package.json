@@ -1,6 +1,6 @@
 {
   "name": "memorose-client",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Node.js SDK for the Memorose Hybrid AI Memory Storage Engine",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

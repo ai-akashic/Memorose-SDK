@@ -6,7 +6,7 @@
 
     <groupId>dev.memorose.sdk</groupId>
     <artifactId>memorose-client</artifactId>
-    <version>0.1.0</version>
+    <version>0.1.1</version>
 
     <name>Memorose Client</name>
     <description>Java SDK for the Memorose Hybrid AI Memory Storage Engine</description>
