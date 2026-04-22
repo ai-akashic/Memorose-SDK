@@ -6,6 +6,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 public class IngestRequest {
     public String content;
     public String content_type = "text";
+    public String org_id;
     public Integer level;
     public String parent_id;
     public String task_status;

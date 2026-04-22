@@ -1,10 +1,8 @@
 # Memorose Java SDK
 
-Java client for the Memorose Hybrid AI Memory Storage Engine.
+Java client for the current Memorose `/v1` runtime.
 
 ## Installation
-
-Add the following to your `pom.xml`:
 
 ```xml
 <dependency>
@@ -18,33 +16,24 @@ Add the following to your `pom.xml`:
 
 ```java
 import com.memorose.client.MemoroseClient;
-import java.util.Map;
-import java.util.HashMap;
-import java.util.List;
+import com.memorose.client.models.IngestRequest;
+import com.memorose.client.models.RetrieveRequest;
+import com.memorose.client.models.RetrieveResponse;
 
 public class Main {
-    public static void main(String[] args) {
-        try {
-            MemoroseClient client = new MemoroseClient("http://localhost:8000", "your_api_key");
+    public static void main(String[] args) throws Exception {
+        MemoroseClient client = new MemoroseClient("http://127.0.0.1:3000", "your_api_key");
+        String streamId = "11111111-1111-1111-1111-111111111111";
 
-            // Add a memory
-            Map<String, Object> metadata = new HashMap<>();
-            metadata.put("source", "wikipedia");
-            
-            Map<String, Object> memory = client.addMemory("The capital of Italy is Rome.", metadata);
-            System.out.println("Added memory ID: " + memory.get("id"));
+        client.ingestEvent("user_123", streamId, new IngestRequest("Dylan prefers concise summaries."));
 
-            // Search memories
-            List<Map<String, Object>> results = client.searchMemories("What is the capital of Italy?", 5);
-            System.out.println("Found " + results.size() + " results.");
+        RetrieveRequest request = new RetrieveRequest("What does Dylan prefer?");
+        request.limit = 5;
+        RetrieveResponse response = client.retrieveMemory("user_123", streamId, request);
 
-            // Delete a memory
-            client.deleteMemory((String) memory.get("id"));
-            System.out.println("Memory deleted.");
-
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        System.out.println(response.results);
     }
 }
 ```
+
+The SDK sends `x-api-key` and mirrors the server `/v1` REST routes.

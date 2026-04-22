@@ -3,7 +3,8 @@ package com.memorose.client.models;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class RetrieveRequest {
+public class MemoryContextRequest {
+    public String user_id;
     public String query;
     public Integer limit;
     public Boolean enable_arbitration;
@@ -15,10 +16,8 @@ public class RetrieveRequest {
     public String as_of;
     public String org_id;
     public String agent_id;
+    public String format;
     public String image;
     public String audio;
     public String video;
-
-    public RetrieveRequest() {}
-    public RetrieveRequest(String query) { this.query = query; }
 }

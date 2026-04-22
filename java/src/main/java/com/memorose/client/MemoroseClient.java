@@ -72,11 +72,11 @@ public class MemoroseClient {
         return objectMapper.readValue(body, typeRef);
     }
 
-    public IngestResponse ingestEvent(String userId, String appId, String streamId, IngestRequest requestData) throws Exception {
+    public IngestResponse ingestEvent(String userId, String streamId, IngestRequest requestData) throws Exception {
         String json = objectMapper.writeValueAsString(requestData);
         HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(String.format("%s/v1/users/%s/apps/%s/streams/%s/events", this.endpoint, enc(userId), enc(appId), enc(streamId))))
-                .header("Authorization", "Bearer " + this.apiKey)
+                .uri(URI.create(String.format("%s/v1/users/%s/streams/%s/events", this.endpoint, enc(userId), enc(streamId))))
+                .header("x-api-key", this.apiKey)
                 .header("Content-Type", "application/json")
                 .timeout(Duration.ofSeconds(30))
                 .POST(HttpRequest.BodyPublishers.ofString(json))
@@ -84,11 +84,23 @@ public class MemoroseClient {
         return executeRequest(request, IngestResponse.class);
     }
 
-    public RetrieveResponse retrieveMemory(String userId, String appId, String streamId, RetrieveRequest requestData) throws Exception {
+    public BatchIngestResponse ingestEventsBatch(String userId, String streamId, BatchIngestRequest requestData) throws Exception {
         String json = objectMapper.writeValueAsString(requestData);
         HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(String.format("%s/v1/users/%s/apps/%s/streams/%s/retrieve", this.endpoint, enc(userId), enc(appId), enc(streamId))))
-                .header("Authorization", "Bearer " + this.apiKey)
+                .uri(URI.create(String.format("%s/v1/users/%s/streams/%s/events/batch", this.endpoint, enc(userId), enc(streamId))))
+                .header("x-api-key", this.apiKey)
+                .header("Content-Type", "application/json")
+                .timeout(Duration.ofSeconds(30))
+                .POST(HttpRequest.BodyPublishers.ofString(json))
+                .build();
+        return executeRequest(request, BatchIngestResponse.class);
+    }
+
+    public RetrieveResponse retrieveMemory(String userId, String streamId, RetrieveRequest requestData) throws Exception {
+        String json = objectMapper.writeValueAsString(requestData);
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(String.format("%s/v1/users/%s/streams/%s/retrieve", this.endpoint, enc(userId), enc(streamId))))
+                .header("x-api-key", this.apiKey)
                 .header("Content-Type", "application/json")
                 .timeout(Duration.ofSeconds(30))
                 .POST(HttpRequest.BodyPublishers.ofString(json))
@@ -96,10 +108,57 @@ public class MemoroseClient {
         return executeRequest(request, RetrieveResponse.class);
     }
 
-    public List<GoalTree> getTaskTree(String userId, String appId, String streamId) throws Exception {
+    public MemoryContextResponse buildMemoryContext(MemoryContextRequest requestData) throws Exception {
+        String json = objectMapper.writeValueAsString(requestData);
         HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(String.format("%s/v1/users/%s/apps/%s/streams/%s/tasks/tree", this.endpoint, enc(userId), enc(appId), enc(streamId))))
-                .header("Authorization", "Bearer " + this.apiKey)
+                .uri(URI.create(this.endpoint + "/v1/memory/context"))
+                .header("x-api-key", this.apiKey)
+                .header("Content-Type", "application/json")
+                .timeout(Duration.ofSeconds(30))
+                .POST(HttpRequest.BodyPublishers.ofString(json))
+                .build();
+        return executeRequest(request, MemoryContextResponse.class);
+    }
+
+    public void deleteMemory(String userId, String memoryId) throws Exception {
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(String.format("%s/v1/users/%s/memories/%s", this.endpoint, enc(userId), enc(memoryId))))
+                .header("x-api-key", this.apiKey)
+                .timeout(Duration.ofSeconds(15))
+                .DELETE()
+                .build();
+        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+        handleHttpError(response);
+    }
+
+    public Map<String, Object> previewSemanticMemory(String userId, SemanticMemoryPreviewRequest requestData) throws Exception {
+        String json = objectMapper.writeValueAsString(requestData);
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(String.format("%s/v1/users/%s/memories/semantic/preview", this.endpoint, enc(userId))))
+                .header("x-api-key", this.apiKey)
+                .header("Content-Type", "application/json")
+                .timeout(Duration.ofSeconds(30))
+                .POST(HttpRequest.BodyPublishers.ofString(json))
+                .build();
+        return executeRequestRef(request, new TypeReference<Map<String, Object>>(){});
+    }
+
+    public Map<String, Object> executeSemanticMemory(String userId, SemanticMemoryExecuteRequest requestData) throws Exception {
+        String json = objectMapper.writeValueAsString(requestData);
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(String.format("%s/v1/users/%s/memories/semantic/execute", this.endpoint, enc(userId))))
+                .header("x-api-key", this.apiKey)
+                .header("Content-Type", "application/json")
+                .timeout(Duration.ofSeconds(30))
+                .POST(HttpRequest.BodyPublishers.ofString(json))
+                .build();
+        return executeRequestRef(request, new TypeReference<Map<String, Object>>(){});
+    }
+
+    public List<GoalTree> getTaskTree(String userId, String streamId) throws Exception {
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(String.format("%s/v1/users/%s/streams/%s/tasks/tree", this.endpoint, enc(userId), enc(streamId))))
+                .header("x-api-key", this.apiKey)
                 .timeout(Duration.ofSeconds(10))
                 .GET()
                 .build();
@@ -109,7 +168,7 @@ public class MemoroseClient {
     public List<GoalTree> getAllTaskTrees(String userId) throws Exception {
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(String.format("%s/v1/users/%s/tasks/tree", this.endpoint, enc(userId))))
-                .header("Authorization", "Bearer " + this.apiKey)
+                .header("x-api-key", this.apiKey)
                 .timeout(Duration.ofSeconds(10))
                 .GET()
                 .build();
@@ -119,7 +178,7 @@ public class MemoroseClient {
     public List<L3Task> getReadyTasks(String userId) throws Exception {
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(String.format("%s/v1/users/%s/tasks/ready", this.endpoint, enc(userId))))
-                .header("Authorization", "Bearer " + this.apiKey)
+                .header("x-api-key", this.apiKey)
                 .timeout(Duration.ofSeconds(10))
                 .GET()
                 .build();
@@ -130,7 +189,7 @@ public class MemoroseClient {
         String json = objectMapper.writeValueAsString(requestData);
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(String.format("%s/v1/users/%s/tasks/%s/status", this.endpoint, enc(userId), enc(taskId))))
-                .header("Authorization", "Bearer " + this.apiKey)
+                .header("x-api-key", this.apiKey)
                 .header("Content-Type", "application/json")
                 .timeout(Duration.ofSeconds(15))
                 .PUT(HttpRequest.BodyPublishers.ofString(json))
@@ -142,7 +201,7 @@ public class MemoroseClient {
         String json = objectMapper.writeValueAsString(requestData);
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(String.format("%s/v1/users/%s/graph/edges", this.endpoint, enc(userId))))
-                .header("Authorization", "Bearer " + this.apiKey)
+                .header("x-api-key", this.apiKey)
                 .header("Content-Type", "application/json")
                 .timeout(Duration.ofSeconds(10))
                 .POST(HttpRequest.BodyPublishers.ofString(json))
@@ -153,8 +212,48 @@ public class MemoroseClient {
     public Map<String, Object> getPendingCount() throws Exception {
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(this.endpoint + "/v1/status/pending"))
-                .header("Authorization", "Bearer " + this.apiKey)
+                .header("x-api-key", this.apiKey)
                 .timeout(Duration.ofSeconds(5))
+                .GET()
+                .build();
+        return executeRequestRef(request, new TypeReference<Map<String, Object>>(){});
+    }
+
+    public Map<String, Object> listOrganizationKnowledge(String orgId, Map<String, String> query) throws Exception {
+        StringBuilder uri = new StringBuilder(String.format("%s/v1/organizations/%s/knowledge", this.endpoint, enc(orgId)));
+        if (query != null && !query.isEmpty()) {
+            uri.append("?");
+            boolean first = true;
+            for (Map.Entry<String, String> entry : query.entrySet()) {
+                if (!first) uri.append("&");
+                uri.append(enc(entry.getKey())).append("=").append(enc(entry.getValue()));
+                first = false;
+            }
+        }
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(uri.toString()))
+                .header("x-api-key", this.apiKey)
+                .timeout(Duration.ofSeconds(10))
+                .GET()
+                .build();
+        return executeRequestRef(request, new TypeReference<Map<String, Object>>(){});
+    }
+
+    public Map<String, Object> getOrganizationKnowledge(String orgId, String knowledgeId) throws Exception {
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(String.format("%s/v1/organizations/%s/knowledge/%s", this.endpoint, enc(orgId), enc(knowledgeId))))
+                .header("x-api-key", this.apiKey)
+                .timeout(Duration.ofSeconds(10))
+                .GET()
+                .build();
+        return executeRequestRef(request, new TypeReference<Map<String, Object>>(){});
+    }
+
+    public Map<String, Object> getOrganizationKnowledgeMetrics(String orgId) throws Exception {
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(String.format("%s/v1/organizations/%s/knowledge/metrics", this.endpoint, enc(orgId))))
+                .header("x-api-key", this.apiKey)
+                .timeout(Duration.ofSeconds(10))
                 .GET()
                 .build();
         return executeRequestRef(request, new TypeReference<Map<String, Object>>(){});
@@ -163,7 +262,7 @@ public class MemoroseClient {
     public Map<String, Object> initializeCluster() throws Exception {
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(this.endpoint + "/v1/cluster/initialize"))
-                .header("Authorization", "Bearer " + this.apiKey)
+                .header("x-api-key", this.apiKey)
                 .timeout(Duration.ofSeconds(15))
                 .POST(HttpRequest.BodyPublishers.noBody())
                 .build();
@@ -174,7 +273,7 @@ public class MemoroseClient {
         String json = objectMapper.writeValueAsString(requestData);
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(this.endpoint + "/v1/cluster/join"))
-                .header("Authorization", "Bearer " + this.apiKey)
+                .header("x-api-key", this.apiKey)
                 .header("Content-Type", "application/json")
                 .timeout(Duration.ofSeconds(15))
                 .POST(HttpRequest.BodyPublishers.ofString(json))
@@ -185,7 +284,7 @@ public class MemoroseClient {
     public void leaveCluster(String nodeId) throws Exception {
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(String.format("%s/v1/cluster/nodes/%s", this.endpoint, enc(nodeId))))
-                .header("Authorization", "Bearer " + this.apiKey)
+                .header("x-api-key", this.apiKey)
                 .timeout(Duration.ofSeconds(15))
                 .DELETE()
                 .build();

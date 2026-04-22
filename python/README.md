@@ -1,35 +1,35 @@
 # Memorose Python SDK
 
-Python client for the Memorose Hybrid AI Memory Storage Engine.
+Python client for the current Memorose `/v1` runtime.
 
 ## Installation
 
 ```bash
-pip install .
+pip install memorose
 ```
 
 ## Usage
 
 ```python
 from memorose import MemoroseClient
+from memorose.types import IngestRequest, RetrieveRequest
 
-# Initialize the client
-client = MemoroseClient(endpoint="http://localhost:8000", api_key="your_api_key")
+client = MemoroseClient("http://127.0.0.1:3000", "your_api_key")
+stream_id = "11111111-1111-1111-1111-111111111111"
 
-# Add a memory
-memory = client.add_memory(
-    content="The capital of France is Paris.",
-    metadata={"source": "wikipedia", "confidence": 0.99}
+client.ingest_event(
+    "user_123",
+    stream_id,
+    IngestRequest(content="Dylan prefers concise summaries.", org_id="default"),
 )
-print("Added memory:", memory)
 
-# Search memories
-results = client.search_memories(query="What is the capital of France?", limit=5)
-print("Search results:", results)
+response = client.retrieve_memory(
+    "user_123",
+    stream_id,
+    RetrieveRequest(query="What does Dylan prefer?", limit=5, org_id="default"),
+)
 
-# Get a specific memory
-memory = client.get_memory(memory_id=memory["id"])
-
-# Delete a memory
-client.delete_memory(memory_id=memory["id"])
+print(response.results)
 ```
+
+The SDK sends `x-api-key` and targets stream-scoped routes such as `/v1/users/:user_id/streams/:stream_id/events`.

@@ -8,6 +8,7 @@ public class Asset {
     public String storage_key;
     public String original_name;
     public String asset_type;
+    public String description;
     public Map<String, String> metadata;
 
     public Asset() {}

@@ -9,4 +9,5 @@ public class RetrieveResponse {
     public String stream_id;
     public String query;
     public List<Map<String, Object>> results;
+    public Long query_time_ms;
 }

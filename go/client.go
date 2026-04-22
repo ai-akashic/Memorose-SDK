@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 )
@@ -43,7 +44,7 @@ func (c *Client) do(ctx context.Context, method, path string, body io.Reader) (*
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("Authorization", "Bearer "+c.apiKey)
+	req.Header.Set("x-api-key", c.apiKey)
 	req.Header.Set("Content-Type", "application/json")
 	return c.httpClient.Do(req)
 }
@@ -81,22 +82,54 @@ func (c *Client) requestJSON(ctx context.Context, method, path string, reqBody i
 	return nil
 }
 
-func (c *Client) IngestEvent(ctx context.Context, userID, appID, streamID string, req IngestRequest) (*IngestResponse, error) {
-	path := fmt.Sprintf("/v1/users/%s/apps/%s/streams/%s/events", userID, appID, streamID)
+func (c *Client) IngestEvent(ctx context.Context, userID, streamID string, req IngestRequest) (*IngestResponse, error) {
+	path := fmt.Sprintf("/v1/users/%s/streams/%s/events", userID, streamID)
 	var res IngestResponse
 	err := c.requestJSON(ctx, http.MethodPost, path, req, &res)
 	return &res, err
 }
 
-func (c *Client) RetrieveMemory(ctx context.Context, userID, appID, streamID string, req RetrieveRequest) (*RetrieveResponse, error) {
-	path := fmt.Sprintf("/v1/users/%s/apps/%s/streams/%s/retrieve", userID, appID, streamID)
+func (c *Client) IngestEventsBatch(ctx context.Context, userID, streamID string, req BatchIngestRequest) (*BatchIngestResponse, error) {
+	path := fmt.Sprintf("/v1/users/%s/streams/%s/events/batch", userID, streamID)
+	var res BatchIngestResponse
+	err := c.requestJSON(ctx, http.MethodPost, path, req, &res)
+	return &res, err
+}
+
+func (c *Client) RetrieveMemory(ctx context.Context, userID, streamID string, req RetrieveRequest) (*RetrieveResponse, error) {
+	path := fmt.Sprintf("/v1/users/%s/streams/%s/retrieve", userID, streamID)
 	var res RetrieveResponse
 	err := c.requestJSON(ctx, http.MethodPost, path, req, &res)
 	return &res, err
 }
 
-func (c *Client) GetTaskTree(ctx context.Context, userID, appID, streamID string) ([]GoalTree, error) {
-	path := fmt.Sprintf("/v1/users/%s/apps/%s/streams/%s/tasks/tree", userID, appID, streamID)
+func (c *Client) BuildMemoryContext(ctx context.Context, req MemoryContextRequest) (*MemoryContextResponse, error) {
+	var res MemoryContextResponse
+	err := c.requestJSON(ctx, http.MethodPost, "/v1/memory/context", req, &res)
+	return &res, err
+}
+
+func (c *Client) DeleteMemory(ctx context.Context, userID, memoryID string) error {
+	path := fmt.Sprintf("/v1/users/%s/memories/%s", userID, memoryID)
+	return c.requestJSON(ctx, http.MethodDelete, path, nil, nil)
+}
+
+func (c *Client) PreviewSemanticMemory(ctx context.Context, userID string, req SemanticMemoryPreviewRequest) (map[string]interface{}, error) {
+	path := fmt.Sprintf("/v1/users/%s/memories/semantic/preview", userID)
+	res := make(map[string]interface{})
+	err := c.requestJSON(ctx, http.MethodPost, path, req, &res)
+	return res, err
+}
+
+func (c *Client) ExecuteSemanticMemory(ctx context.Context, userID string, req SemanticMemoryExecuteRequest) (map[string]interface{}, error) {
+	path := fmt.Sprintf("/v1/users/%s/memories/semantic/execute", userID)
+	res := make(map[string]interface{})
+	err := c.requestJSON(ctx, http.MethodPost, path, req, &res)
+	return res, err
+}
+
+func (c *Client) GetTaskTree(ctx context.Context, userID, streamID string) ([]GoalTree, error) {
+	path := fmt.Sprintf("/v1/users/%s/streams/%s/tasks/tree", userID, streamID)
 	var res []GoalTree
 	err := c.requestJSON(ctx, http.MethodGet, path, nil, &res)
 	return res, err
@@ -134,6 +167,34 @@ func (c *Client) GetPendingCount(ctx context.Context) (*PendingCountResponse, er
 	var res PendingCountResponse
 	err := c.requestJSON(ctx, http.MethodGet, "/v1/status/pending", nil, &res)
 	return &res, err
+}
+
+func (c *Client) ListOrganizationKnowledge(ctx context.Context, orgID string, query map[string]string) (map[string]interface{}, error) {
+	values := url.Values{}
+	for key, value := range query {
+		values.Set(key, value)
+	}
+	path := fmt.Sprintf("/v1/organizations/%s/knowledge", orgID)
+	if encoded := values.Encode(); encoded != "" {
+		path += "?" + encoded
+	}
+	res := make(map[string]interface{})
+	err := c.requestJSON(ctx, http.MethodGet, path, nil, &res)
+	return res, err
+}
+
+func (c *Client) GetOrganizationKnowledge(ctx context.Context, orgID, knowledgeID string) (map[string]interface{}, error) {
+	path := fmt.Sprintf("/v1/organizations/%s/knowledge/%s", orgID, knowledgeID)
+	res := make(map[string]interface{})
+	err := c.requestJSON(ctx, http.MethodGet, path, nil, &res)
+	return res, err
+}
+
+func (c *Client) GetOrganizationKnowledgeMetrics(ctx context.Context, orgID string) (map[string]interface{}, error) {
+	path := fmt.Sprintf("/v1/organizations/%s/knowledge/metrics", orgID)
+	res := make(map[string]interface{})
+	err := c.requestJSON(ctx, http.MethodGet, path, nil, &res)
+	return res, err
 }
 
 func (c *Client) InitializeCluster(ctx context.Context) (*ClusterResponse, error) {

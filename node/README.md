@@ -1,6 +1,6 @@
 # Memorose Node.js SDK
 
-Node.js / TypeScript client for the Memorose Hybrid AI Memory Storage Engine.
+Node.js / TypeScript client for the current Memorose `/v1` runtime.
 
 ## Installation
 
@@ -10,26 +10,24 @@ npm install memorose-client
 
 ## Usage
 
-```typescript
+```ts
 import { MemoroseClient } from 'memorose-client';
 
-const client = new MemoroseClient('http://localhost:8000', 'your_api_key');
+const client = new MemoroseClient('http://127.0.0.1:3000', 'your_api_key');
+const streamId = '11111111-1111-1111-1111-111111111111';
 
-async function main() {
-  // Add a memory
-  const memory = await client.addMemory('The capital of Japan is Tokyo.', { source: 'geography' });
-  console.log('Added memory:', memory);
+await client.ingestEvent('user_123', streamId, {
+  content: 'Dylan prefers concise summaries.',
+  org_id: 'default',
+});
 
-  // Search memories
-  const results = await client.searchMemories('What is the capital of Japan?');
-  console.log('Search results:', results);
+const response = await client.retrieveMemory('user_123', streamId, {
+  query: 'What does Dylan prefer?',
+  limit: 5,
+  org_id: 'default',
+});
 
-  // Get a specific memory
-  const fetchedMemory = await client.getMemory(memory.id);
-
-  // Delete a memory
-  await client.deleteMemory(memory.id);
-}
-
-main();
+console.log(response.results);
 ```
+
+The SDK sends `x-api-key` and mirrors the server `/v1` REST routes.

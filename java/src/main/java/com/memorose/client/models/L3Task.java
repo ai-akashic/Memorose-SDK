@@ -9,7 +9,6 @@ public class L3Task {
     public String org_id;
     public String user_id;
     public String agent_id;
-    public String app_id;
     public String parent_id;
     public String title;
     public String description;

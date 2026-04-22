@@ -2,63 +2,95 @@ package memorose
 
 import (
 	"context"
+	"encoding/json"
+	"io"
 	"net/http"
-	"net/http/httptest"
+	"strings"
 	"testing"
 )
 
-func TestIngestEvent(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"event_id":"e1","status":"success"}`))
-	}))
-	defer server.Close()
+type roundTripFunc func(*http.Request) (*http.Response, error)
 
-	client := NewClient(server.URL, "test_key")
-	req := IngestRequest{
-		Content: "user signed up",
+func (fn roundTripFunc) RoundTrip(req *http.Request) (*http.Response, error) {
+	return fn(req)
+}
+
+func newTestClient(handler roundTripFunc) *Client {
+	client := NewClient("http://memorose.test", "test_key")
+	client.httpClient = &http.Client{Transport: handler}
+	return client
+}
+
+func jsonResponse(status int, body string) *http.Response {
+	return &http.Response{
+		StatusCode: status,
+		Header:     make(http.Header),
+		Body:       io.NopCloser(strings.NewReader(body)),
 	}
-	resp, err := client.IngestEvent(context.Background(), "user1", "app1", "stream1", req)
+}
+
+func TestIngestEventUsesCurrentRouteAndAPIKeyHeader(t *testing.T) {
+	var gotPath string
+	var gotAPIKey string
+	client := newTestClient(func(req *http.Request) (*http.Response, error) {
+		gotPath = req.URL.Path
+		gotAPIKey = req.Header.Get("x-api-key")
+		return jsonResponse(http.StatusOK, `{"event_id":"e1","status":"accepted"}`), nil
+	})
+
+	resp, err := client.IngestEvent(context.Background(), "user1", "stream1", IngestRequest{
+		Content: "user signed up",
+	})
 
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
 	if resp.EventID != "e1" {
-		t.Errorf("expected EventID e1, got %v", resp.EventID)
+		t.Fatalf("expected EventID e1, got %v", resp.EventID)
 	}
-	if resp.Status != "success" {
-		t.Errorf("expected status success, got %v", resp.Status)
+	if gotPath != "/v1/users/user1/streams/stream1/events" {
+		t.Fatalf("expected current stream route, got %s", gotPath)
+	}
+	if gotAPIKey != "test_key" {
+		t.Fatalf("expected x-api-key header, got %q", gotAPIKey)
 	}
 }
 
-func TestRetrieveMemory(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"stream_id":"stream1","query":"what happened?","results":[{"id":"m1","content":"user signed up"}]}`))
-	}))
-	defer server.Close()
+func TestRetrieveMemoryUsesCurrentPayloadShape(t *testing.T) {
+	var gotPath string
+	var gotPayload RetrieveRequest
+	client := newTestClient(func(req *http.Request) (*http.Response, error) {
+		gotPath = req.URL.Path
+		if err := json.NewDecoder(req.Body).Decode(&gotPayload); err != nil {
+			t.Fatalf("decode request body: %v", err)
+		}
+		return jsonResponse(http.StatusOK, `{"stream_id":"stream1","query":"what happened?","results":[],"query_time_ms":9}`), nil
+	})
 
-	client := NewClient(server.URL, "test_key")
-	req := RetrieveRequest{
-		Query: "what happened?",
-	}
-	resp, err := client.RetrieveMemory(context.Background(), "user1", "app1", "stream1", req)
+	resp, err := client.RetrieveMemory(context.Background(), "user1", "stream1", RetrieveRequest{
+		Query:      "what happened?",
+		Limit:      5,
+		GraphDepth: 2,
+		OrgID:      strPtr("org-1"),
+	})
 
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
-	if resp.StreamID != "stream1" {
-		t.Errorf("expected StreamID stream1, got %v", resp.StreamID)
+	if resp.QueryTimeMs != 9 {
+		t.Fatalf("expected query_time_ms 9, got %v", resp.QueryTimeMs)
 	}
-	if resp.Query != "what happened?" {
-		t.Errorf("expected query 'what happened?', got %v", resp.Query)
+	if gotPath != "/v1/users/user1/streams/stream1/retrieve" {
+		t.Fatalf("expected current retrieve route, got %s", gotPath)
 	}
-	if len(resp.Results) != 1 {
-		t.Fatalf("expected 1 result, got %v", len(resp.Results))
+	if gotPayload.Limit != 5 || gotPayload.GraphDepth != 2 {
+		t.Fatalf("unexpected payload: %+v", gotPayload)
 	}
-	if resp.Results[0]["id"] != "m1" {
-		t.Errorf("expected memory ID m1, got %v", resp.Results[0]["id"])
+	if gotPayload.OrgID == nil || *gotPayload.OrgID != "org-1" {
+		t.Fatalf("expected org_id in payload, got %+v", gotPayload.OrgID)
 	}
+}
+
+func strPtr(value string) *string {
+	return &value
 }
